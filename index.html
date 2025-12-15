@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Melanya Bral - Авторские торты</title>
+    
+    <!-- Подключение Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Подключение иконок Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Шрифты -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        h1, h2, h3, .font-serif {
+            font-family: 'Playfair Display', serif;
+        }
+        
+        /* Анимации */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .animate-float {
+            animation: float 4s ease-in-out infinite;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .slide-up {
+            animation: slideUp 0.4s ease-out forwards;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-stone-50 text-stone-800 selection:bg-rose-200">
+
+    <!-- Навигация -->
+    <nav id="navbar" class="fixed w-full z-40 transition-all duration-300 py-6">
+        <div class="container mx-auto px-4 md:px-6 flex justify-between items-center">
+            <div class="font-serif text-2xl font-bold tracking-tight flex items-center gap-2">
+                <span class="text-rose-400"><i data-lucide="cake"></i></span>
+                <span id="brand-name">Melanya Bral</span>
+            </div>
+
+            <!-- Desktop Menu -->
+            <div class="hidden md:flex items-center gap-8 font-medium text-sm text-stone-600">
+                <a href="#about" class="hover:text-rose-500 transition-colors">Обо мне</a>
+                <a href="#catalog" class="hover:text-rose-500 transition-colors">Ассортимент</a>
+                <a href="#custom" class="hover:text-rose-500 transition-colors">Свой дизайн</a>
+                <button onclick="openModal()" class="bg-rose-400 text-white hover:bg-rose-500 shadow-lg hover:shadow-rose-200 px-5 py-2 rounded-full transition-all active:scale-95">
+                    Связаться
+                </button>
+            </div>
+
+            <!-- Mobile Menu Button -->
+            <button class="md:hidden text-stone-800" onclick="toggleMobileMenu()">
+                <i data-lucide="menu"></i>
+            </button>
+        </div>
+
+        <!-- Mobile Menu Dropdown -->
+        <div id="mobile-menu" class="hidden absolute top-full left-0 w-full bg-white shadow-lg border-t border-stone-100 flex-col p-4 gap-4 fade-in">
+            <a href="#about" class="text-left p-2 hover:bg-rose-50 rounded" onclick="toggleMobileMenu()">Обо мне</a>
+            <a href="#catalog" class="text-left p-2 hover:bg-rose-50 rounded" onclick="toggleMobileMenu()">Ассортимент</a>
+            <a href="#custom" class="text-left p-2 hover:bg-rose-50 rounded" onclick="toggleMobileMenu()">Свой дизайн</a>
+            <button onclick="openModal(); toggleMobileMenu()" class="w-full bg-rose-400 text-white py-2 rounded-full">Связаться</button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden">
+        <div class="absolute top-0 right-0 w-1/2 h-full bg-rose-100/30 -z-10 rounded-bl-full translate-x-1/3"></div>
+        <div class="absolute top-20 left-10 text-rose-200 animate-float opacity-50">
+            <i data-lucide="heart" size="48"></i>
+        </div>
+        
+        <div class="container mx-auto px-4 md:px-6">
+            <div class="flex flex-col md:flex-row items-center gap-12">
+                <div class="flex-1 space-y-6 text-center md:text-left">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-50 text-rose-500 text-xs font-bold uppercase tracking-wider">
+                        <i data-lucide="star" size="12"></i> Авторская кондитерская
+                    </div>
+                    <h1 class="text-4xl md:text-6xl font-serif leading-tight text-stone-900">
+                        <span id="hero-title-1">Торты,</span><br/>
+                        <span class="text-rose-400 italic" id="hero-title-2">которые создают настроение</span>
+                    </h1>
+                    <p class="text-lg text-stone-600 max-w-md mx-auto md:mx-0 leading-relaxed" id="hero-subtitle">
+                        Индивидуальный дизайн, натуральные ингредиенты и любовь в каждом кусочке.
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center md:justify-start pt-4">
+                        <a href="#catalog" class="bg-rose-400 text-white hover:bg-rose-500 shadow-lg px-6 py-3 rounded-full font-medium transition-all text-center">
+                            Выбрать десерт
+                        </a>
+                        <a id="insta-link-hero" href="#" target="_blank" class="bg-white text-rose-400 border-2 border-rose-400 hover:bg-rose-50 px-6 py-3 rounded-full font-medium transition-all flex items-center justify-center gap-2">
+                            <i data-lucide="instagram" size="18"></i> Instagram
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="flex-1 relative">
+                    <div class="relative z-10 rounded-2xl overflow-hidden shadow-2xl transform rotate-2 hover:rotate-0 transition-transform duration-500">
+                         <img src="https://images.unsplash.com/photo-1535141192574-5d4897c12636?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Delicious Cake" class="w-full h-[400px] object-cover">
+                    </div>
+                    <div class="absolute -bottom-6 -left-6 w-32 h-32 bg-yellow-100 rounded-full -z-10"></div>
+                    <div class="absolute -top-6 -right-6 w-40 h-40 bg-rose-100 rounded-full -z-10"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- About Section -->
+    <section id="about" class="py-20 bg-white">
+        <div class="container mx-auto px-4 md:px-6">
+            <div class="flex flex-col-reverse md:flex-row items-center gap-12">
+                <div class="flex-1 relative group">
+                    <div class="absolute inset-0 bg-stone-900/0 group-hover:bg-stone-900/10 transition-colors rounded-xl z-10"></div>
+                    <img id="about-image" src="" alt="Baker" class="rounded-xl shadow-lg w-full h-[400px] object-cover object-center grayscale hover:grayscale-0 transition-all duration-500">
+                    <div class="absolute -bottom-4 -right-4 bg-white p-4 rounded-lg shadow-lg z-20">
+                        <p class="font-serif text-xl text-rose-400">100%</p>
+                        <p class="text-xs font-bold text-stone-500 uppercase">Натурально</p>
+                    </div>
+                </div>
+                <div class="flex-1">
+                    <div class="text-center md:text-left mb-8">
+                        <h2 class="text-3xl md:text-4xl font-serif text-stone-800 mb-3">Обо мне</h2>
+                        <div class="w-16 h-1 bg-rose-400 mx-auto md:mx-0 rounded-full"></div>
+                    </div>
+                    <div class="prose prose-stone text-lg text-stone-600 leading-relaxed text-center md:text-left" id="about-text">
+                        <!-- Текст вставится через JS -->
+                    </div>
+                    
+                    <!-- ЗАГЛУШКИ ДЛЯ СТАТИСТИКИ (Можно редактировать в HTML ниже или скрыть) -->
+                    <div class="mt-8 flex gap-8 justify-center md:justify-start opacity-50">
+                        <div class="text-center">
+                            <div class="font-serif text-3xl text-stone-800">XX+</div>
+                            <div class="text-sm text-stone-500">Довольных клиентов</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="font-serif text-3xl text-stone-800">X лет</div>
+                            <div class="text-sm text-stone-500">В кондитерской сфере</div>
+                        </div>
+                    </div>
+                    <p class="text-xs text-stone-400 text-center md:text-left mt-2">*статистика обновляется</p>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Catalog Section -->
+    <section id="catalog" class="py-20 bg-stone-50">
+        <div class="container mx-auto px-4 md:px-6">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-serif text-stone-800 mb-3">Базовый ассортимент</h2>
+                <div class="w-16 h-1 bg-rose-400 mx-auto rounded-full"></div>
+            </div>
+            
+            <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                <!-- Товары будут добавлены через JavaScript -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Custom Order Section -->
+    <section id="custom" class="py-20 bg-white relative overflow-hidden">
+        <div class="container mx-auto px-4 md:px-6 relative z-10">
+            <div class="bg-rose-50 rounded-3xl p-8 md:p-12 flex flex-col md:flex-row items-center gap-12">
+                <div class="flex-1 space-y-6">
+                    <h2 class="text-3xl md:text-4xl font-serif text-stone-800">
+                        Нужен особенный дизайн?
+                    </h2>
+                    <p class="text-stone-600 text-lg">
+                        Свадебный торт, сложная геометрия или дизайн по вашей картинке из Pinterest. 
+                        Заполните форму, и мы обсудим все детали вашего идеального торта.
+                    </p>
+                    <ul class="space-y-3">
+                        <li class="flex items-center gap-3 text-stone-700">
+                            <div class="w-6 h-6 rounded-full bg-rose-200 flex items-center justify-center text-rose-600"><i data-lucide="star" size="14"></i></div>
+                            Индивидуальный подбор начинок
+                        </li>
+                        <li class="flex items-center gap-3 text-stone-700">
+                            <div class="w-6 h-6 rounded-full bg-rose-200 flex items-center justify-center text-rose-600"><i data-lucide="star" size="14"></i></div>
+                            Эскиз перед началом работы
+                        </li>
+                        <li class="flex items-center gap-3 text-stone-700">
+                            <div class="w-6 h-6 rounded-full bg-rose-200 flex items-center justify-center text-rose-600"><i data-lucide="star" size="14"></i></div>
+                            Бережная доставка (Минск и область)
+                        </li>
+                    </ul>
+                    <div class="pt-4">
+                        <button onclick="openModal('Индивидуальный заказ')" class="bg-rose-400 text-white hover:bg-rose-500 shadow-lg px-6 py-3 rounded-full font-medium transition-all">
+                            Заполнить анкету
+                        </button>
+                    </div>
+                </div>
+                <div class="flex-1 w-full max-w-md">
+                   <div class="bg-white p-6 rounded-2xl shadow-lg rotate-3">
+                     <div class="aspect-square bg-stone-100 rounded-lg overflow-hidden mb-4 relative">
+                       <img src="https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" class="object-cover w-full h-full" alt="Custom cake">
+                       <div class="absolute bottom-2 right-2 bg-white/80 backdrop-blur px-3 py-1 rounded text-xs font-bold shadow">Pinterest Idea</div>
+                     </div>
+                     <div class="h-2 w-2/3 bg-stone-100 rounded mb-2"></div>
+                     <div class="h-2 w-1/2 bg-stone-100 rounded"></div>
+                   </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-stone-900 text-stone-300 py-12">
+        <div class="container mx-auto px-4 md:px-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8 border-b border-stone-800 pb-8">
+                <div class="space-y-4">
+                    <div class="font-serif text-2xl text-white flex items-center gap-2">
+                        <span class="text-rose-400"><i data-lucide="cake"></i></span> <span id="footer-brand">Melanya Bral</span>
+                    </div>
+                    <p class="text-sm text-stone-400">
+                        Создаю сладкие моменты для вас и ваших близких.
+                        <!-- Текст заглушка про год основания убрана пока нет данных -->
+                    </p>
+                </div>
+                
+                <div class="space-y-4">
+                    <h4 class="text-white font-bold uppercase tracking-wider text-sm">Контакты</h4>
+                    <div class="space-y-2 text-sm">
+                        <a href="#" class="flex items-center gap-2 hover:text-rose-400 transition-colors">
+                            <i data-lucide="phone" size="16"></i> +375 (XX) XXX-XX-XX
+                        </a>
+                        <a id="footer-insta" href="#" target="_blank" class="flex items-center gap-2 hover:text-rose-400 transition-colors">
+                            <i data-lucide="instagram" size="16"></i> @melanya_bral
+                        </a>
+                        <a id="footer-tg" href="#" class="flex items-center gap-2 hover:text-rose-400 transition-colors">
+                            <i data-lucide="send" size="16"></i> @melanya_bral
+                        </a>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <h4 class="text-white font-bold uppercase tracking-wider text-sm">Навигация</h4>
+                    <div class="flex flex-col gap-2 text-sm">
+                        <a href="#about" class="text-left hover:text-rose-400 transition-colors">Обо мне</a>
+                        <a href="#catalog" class="text-left hover:text-rose-400 transition-colors">Меню</a>
+                        <button onclick="openModal()" class="text-left hover:text-rose-400 transition-colors">Сделать заказ</button>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center text-xs text-stone-500">
+                © <span id="year"></span> Melanya Bral. Все права защищены.
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modal (Модальное окно) -->
+    <div id="order-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-sm fade-in">
+        <div class="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl relative slide-up">
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-stone-400 hover:text-stone-800 transition-colors">
+                <i data-lucide="x"></i>
+            </button>
+            
+            <div class="p-8">
+                <h3 class="text-2xl font-serif text-stone-800 mb-2" id="modal-title">
+                    Заказ
+                </h3>
+                <p class="text-stone-500 text-sm mb-6">
+                    Заполните форму, и я свяжусь с вами в Telegram для уточнения деталей.
+                </p>
+
+                <form id="order-form" class="space-y-4" onsubmit="submitForm(event)">
+                    <div>
+                        <label class="block text-sm font-medium text-stone-700 mb-1">Ваше имя</label>
+                        <input required type="text" class="w-full px-4 py-2 rounded-lg border border-stone-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition-all" placeholder="Мария">
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-stone-700 mb-1">Телефон</label>
+                            <input required type="tel" class="w-full px-4 py-2 rounded-lg border border-stone-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition-all" placeholder="+375...">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-stone-700 mb-1">Telegram</label>
+                            <input type="text" class="w-full px-4 py-2 rounded-lg border border-stone-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition-all" placeholder="@nick">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-stone-700 mb-1">Адрес доставки</label>
+                        <input required type="text" class="w-full px-4 py-2 rounded-lg border border-stone-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition-all" placeholder="Минск, Улица, дом...">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-stone-700 mb-1">Пожелания к заказу</label>
+                        <textarea class="w-full px-4 py-2 rounded-lg border border-stone-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition-all resize-none h-24" placeholder="Надпись на торте, аллергия, дата..."></textarea>
+                    </div>
+
+                    <button type="submit" class="w-full mt-4 bg-rose-400 text-white hover:bg-rose-500 shadow-lg py-3 rounded-full font-medium transition-all">
+                        Отправить заявку
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- ДАННЫЕ ДЛЯ РЕДАКТИРОВАНИЯ ---
+        
+        const CONFIG = {
+            instagram: "https://www.instagram.com/melanya_bral/",
+            telegramUser: "@melanya_bral",
+            aboutText: "Привет! Меня зовут Мелания. Я кондитер, который верит, что десерт должен быть не только вкусным, но и красивым. Мой путь начался с любви к домашней выпечке, и теперь я создаю уникальные торты для ваших самых важных событий. Я использую только натуральные сливки, качественный шоколад и свежие ягоды. [Текст о вашем опыте и подходе — заглушка. Напишите здесь, почему выбирают именно вас].",
+            aboutImage: "https://images.unsplash.com/photo-1556910103-1c02745a30bf?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+            
+            // Продукты (Цены в BYN - примерные, поменяйте на актуальные)
+            products: [
+                {
+                    title: "Бенто-тортик",
+                    description: "Идеальный подарок для одного или двоих. Любая надпись и дизайн.",
+                    price: "от 45 BYN", 
+                    image: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80"
+                },
+                {
+                    title: "Ягодный венок",
+                    description: "Нежный бисквит, сливочный крем-чиз и гора свежих ягод.",
+                    price: "от 70 BYN/кг",
+                    image: "https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80"
+                },
+                {
+                    title: "Шоколадный трюфель",
+                    description: "Для настоящих ценителей шоколада. Влажный бисквит и ганаш.",
+                    price: "от 75 BYN/кг",
+                    image: "https://images.unsplash.com/photo-1571115177098-24ec42ed204d?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80"
+                },
+                {
+                    title: "Набор капкейков",
+                    description: "6, 9 или 12 штук с разными начинками на выбор.",
+                    price: "от 50 BYN",
+                    image: "https://images.unsplash.com/photo-1614707267537-b85aaf00c4b7?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80"
+                }
+            ]
+        };
+
+        // --- ИНИЦИАЛИЗАЦИЯ САЙТА ---
+
+        // Заполнение ссылок и текстов
+        document.getElementById('insta-link-hero').href = CONFIG.instagram;
+        document.getElementById('footer-insta').href = CONFIG.instagram;
+        document.getElementById('footer-tg').href = `https://t.me/${CONFIG.telegramUser.replace('@', '')}`;
+        document.getElementById('footer-tg').innerHTML = `<i data-lucide="send" size="16"></i> ${CONFIG.telegramUser}`;
+        
+        document.getElementById('about-text').innerText = CONFIG.aboutText;
+        document.getElementById('about-image').src = CONFIG.aboutImage;
+        document.getElementById('year').innerText = new Date().getFullYear();
+
+        // Рендер товаров
+        const grid = document.getElementById('products-grid');
+        CONFIG.products.forEach(item => {
+            const card = document.createElement('div');
+            card.className = "bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300 group flex flex-col h-full";
+            card.innerHTML = `
+                <div class="h-64 overflow-hidden relative">
+                    <img src="${item.image}" alt="${item.title}" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700">
+                </div>
+                <div class="p-6 flex flex-col flex-grow">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-serif text-xl font-bold text-stone-800">${item.title}</h3>
+                    </div>
+                    <p class="text-stone-500 text-sm mb-4 flex-grow">${item.description}</p>
+                    <div class="flex items-center justify-between mt-auto pt-4 border-t border-stone-100">
+                        <span class="font-bold text-lg text-rose-500">${item.price}</span>
+                        <button onclick="openModal('${item.title}')" class="p-2 rounded-full bg-stone-100 text-stone-800 hover:bg-rose-400 hover:text-white transition-colors">
+                            <i data-lucide="shopping-bag" size="20"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+
+        // Инициализация иконок
+        lucide.createIcons();
+
+        // --- ЛОГИКА ИНТЕРФЕЙСА ---
+
+        // Меню
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            if (menu.classList.contains('hidden')) {
+                menu.classList.remove('hidden');
+                menu.classList.add('flex');
+            } else {
+                menu.classList.add('hidden');
+                menu.classList.remove('flex');
+            }
+        }
+
+        // Модальное окно
+        function openModal(productName = null) {
+            const modal = document.getElementById('order-modal');
+            const title = document.getElementById('modal-title');
+            
+            if (productName) {
+                title.innerText = `Заказ: ${productName}`;
+            } else {
+                title.innerText = "Индивидуальный заказ";
+            }
+            
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('order-modal').classList.add('hidden');
+        }
+
+        // Закрытие по клику вне окна
+        document.getElementById('order-modal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        // Отправка формы (Эмуляция)
+        function submitForm(e) {
+            e.preventDefault();
+            alert('Заявка отправлена! В реальном проекте здесь будет интеграция с Telegram ботом.');
+            closeModal();
+            e.target.reset();
+        }
+
+        // Эффект скролла для шапки
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                nav.classList.add('bg-white/90', 'backdrop-blur-md', 'shadow-sm', 'py-3');
+                nav.classList.remove('py-6');
+            } else {
+                nav.classList.remove('bg-white/90', 'backdrop-blur-md', 'shadow-sm', 'py-3');
+                nav.classList.add('py-6');
+            }
+        });
+
+    </script>
+</body>
+</html>
