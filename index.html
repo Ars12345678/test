@@ -45,10 +45,10 @@
 
             <!-- Desktop Menu -->
             <div class="hidden md:flex items-center gap-8 font-medium text-sm text-stone-600">
-                <a href="#about" class="hover:text-rose-500 transition-colors">Обо мне</a>
-                <a href="#catalog" class="hover:text-rose-500 transition-colors">Ассортимент</a>
-                <a href="#custom" class="hover:text-rose-500 transition-colors">Свой дизайн</a>
-                <button onclick="openModal('custom')" class="bg-rose-400 text-white hover:bg-rose-500 shadow-lg hover:shadow-rose-200 px-5 py-2 rounded-full transition-all active:scale-95">
+                <a href="#about" class="hover:text-rose-0 transition-colors">Обо мне</a>
+                <a href="#catalog" class="hover:text-rose-0 transition-colors">Ассортимент</a>
+                <a href="#custom" class="hover:text-rose-0 transition-colors">Свой дизайн</a>
+                <button onclick="openModal('custom')" class="bg-rose-400 text-white hover:bg-rose-0 shadow-lg hover:shadow-rose-200 px-5 py-2 rounded-full transition-all active:scale-95">
                     Связаться
                 </button>
             </div>
@@ -61,8 +61,8 @@
 
         <!-- Mobile Menu Dropdown -->
         <div id="mobile-menu" class="hidden absolute top-full left-0 w-full bg-white shadow-lg border-t border-stone-100 flex-col p-4 gap-4 fade-in">
-            <a href="#about" class="text-left p-2 hover:bg-rose-50 rounded" onclick="toggleMobileMenu()">Обо мне</a>
-            <a href="#catalog" class="text-left p-2 hover:bg-rose-50 rounded" onclick="toggleMobileMenu()">Ассортимент</a>
+            <a href="#about" class="text-left p-2 hover:bg-rose- rounded" onclick="toggleMobileMenu()">Обо мне</a>
+            <a href="#catalog" class="text-left p-2 hover:bg-rose- rounded" onclick="toggleMobileMenu()">Ассортимент</a>
             <a href="#custom" class="text-left p-2 hover:bg-rose-50 rounded" onclick="toggleMobileMenu()">Свой дизайн</a>
             <button onclick="openModal('custom'); toggleMobileMenu()" class="w-full bg-rose-400 text-white py-2 rounded-full">Связаться</button>
         </div>
@@ -100,7 +100,7 @@
                 
                 <div class="flex-1 relative">
                     <div class="relative z-10 rounded-2xl overflow-hidden shadow-2xl transform rotate-2 hover:rotate-0 transition-transform duration-500">
-                        <img id="hero-img" src="https://images.unsplash.com/photo-1535141192574-5d4897c12636?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Delicious Cake" class="w-full h-[400px] object-cover">
+                        <img id="hero-img" src="photos/1.jpg" alt="Delicious Cake" class="w-full h-[400px] object-cover">
                     </div>
                     <div class="absolute -bottom-6 -left-6 w-32 h-32 bg-yellow-100 rounded-full -z-10"></div>
                     <div class="absolute -top-6 -right-6 w-40 h-40 bg-rose-100 rounded-full -z-10"></div>
@@ -196,7 +196,7 @@
                    <div class="bg-white p-6 rounded-2xl shadow-lg rotate-3">
                      <div class="aspect-square bg-stone-100 rounded-lg overflow-hidden mb-4 relative">
                         <!-- Фото заглушка для кастомного заказа -->
-                       <img src="https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" class="object-cover w-full h-full" alt="Custom cake">
+                       <img src="photos/8.jpg" class="object-cover w-full h-full" alt="Custom cake">
                        <div class="absolute bottom-2 right-2 bg-white/80 backdrop-blur px-3 py-1 rounded text-xs font-bold shadow">Pinterest Idea</div>
                      </div>
                    </div>
@@ -306,11 +306,11 @@
                         <div class="flex flex-col gap-2">
                             <label class="flex items-center gap-3 p-3 border border-stone-100 rounded-lg hover:bg-stone-50 cursor-pointer">
                                 <input type="checkbox" id="extra-candle" class="w-5 h-5 text-rose-400 rounded focus:ring-rose-400 border-stone-300">
-                                <span class="text-sm text-stone-700">⚪️ Свечка в цвет десерта</span>
+                                <span class="text-sm text-stone-700">Свечка в цвет десерта</span>
                             </label>
                             <label class="flex items-center gap-3 p-3 border border-stone-100 rounded-lg hover:bg-stone-50 cursor-pointer">
                                 <input type="checkbox" id="extra-postcard" class="w-5 h-5 text-rose-400 rounded focus:ring-rose-400 border-stone-300">
-                                <span class="text-sm text-stone-700">⚪️ Открытка</span>
+                                <span class="text-sm text-stone-700">Открытка</span>
                             </label>
                         </div>
                     </div>
@@ -353,7 +353,7 @@
                 desc: "450-500г. На 1-2 человек.",
                 basePrice: 50,
                 priceLabel: "50 BYN",
-                image: "photos/1.jpg",
+                image: "photos/3.jpg",
                 type: "fixed",
                 flavors: [
                     "Вишня в шоколаде", "Сникерс", "Манго-маракуйя", 
@@ -366,7 +366,7 @@
                 desc: "600-650г. На 3-4 человек.",
                 basePrice: 60,
                 priceLabel: "60 BYN",
-                image: "photos/2.jpg",
+                image: "photos/4.jpg",
                 type: "fixed",
                 flavors: [
                     "Вишня в шоколаде", "Сникерс", "Манго-маракуйя", 
@@ -378,7 +378,7 @@
                 title: "Стандартный торт",
                 desc: "От 1.5 кг. Расчет 250г на гостя.",
                 priceLabel: "от 65 BYN/кг",
-                image: "photos/3.jpg",
+                image: "photos/5.jpg",
                 type: "weight_calc",
                 minWeight: 1.5,
                 flavors: [
@@ -395,7 +395,7 @@
                 title: "Набор капкейков",
                 desc: "Наборы по 4, 6, 8 или 12 шт.",
                 priceLabel: "от 7.5 BYN/шт",
-                image: "photos/4.jpg",
+                image: "photos/6.jpg",
                 type: "quantity_calc",
                 quantities: [4, 6, 8, 12],
                 flavors: [
@@ -409,7 +409,7 @@
                 title: "Набор Cookies",
                 desc: "Наборы по 4, 6 или 8 штук.",
                 priceLabel: "от 6.5 BYN/шт",
-                image: "photos/5.jpg",
+                image: "photos/7.jpg",
                 type: "quantity_calc",
                 quantities: [4, 6, 8],
                 flavors: [
@@ -759,3 +759,4 @@ ${totalPrice}
     </script>
 </body>
 </html>
+
