@@ -210,6 +210,7 @@
 
   <div id="gamebtns">
     <button class="gbtn" id="btnMode">ANGLE</button>
+    <button class="gbtn" id="btnInvert">СТИК: НОРМ</button>
     <button class="gbtn" id="btnMenu">MENU</button>
   </div>
 
@@ -301,12 +302,12 @@ const isTouch=('ontouchstart'in window)||navigator.maxTouchPoints>0;
 
 /* ---------- DRONE MODELS ---------- */
 const DRONES={
-  scout:{key:'scout',name:'СТРИЖ',role:'Разведка / скорость',thrust:32,agility:1.4,turn:2.3,drain:0.011,blast:6,color:0x37e0c8,
-    stats:{speed:0.95,agility:0.9,blast:0.3,endurance:0.5},desc:'Лёгкий и вёрткий. Малый радиус подрыва — нужен точный контакт.'},
-  vector:{key:'vector',name:'ВЕКТОР',role:'Универсал',thrust:29,agility:1.0,turn:1.9,drain:0.008,blast:11,color:0xffd54a,
-    stats:{speed:0.7,agility:0.65,blast:0.6,endurance:0.7},desc:'Золотая середина скорости, управляемости и заряда.'},
-  molot:{key:'molot',name:'МОЛОТ',role:'Ударный / тяжёлый',thrust:27,agility:0.72,turn:1.5,drain:0.006,blast:18,color:0xff5468,
-    stats:{speed:0.5,agility:0.4,blast:1.0,endurance:0.95},desc:'Медленный, но большой радиус подрыва и живучий заряд.'},
+  scout:{key:'scout',name:'СТРИЖ',role:'Разведка / скорость',thrust:40,agility:1.45,turn:2.4,drain:0.0044,blast:7,color:0x37e0c8,
+    stats:{speed:1.0,agility:0.95,blast:0.35,endurance:0.6},desc:'Лёгкий и очень быстрый. Малый радиус подрыва — нужен точный контакт.'},
+  vector:{key:'vector',name:'ВЕКТОР',role:'Универсал',thrust:36,agility:1.05,turn:2.0,drain:0.0036,blast:12,color:0xffd54a,
+    stats:{speed:0.8,agility:0.7,blast:0.6,endurance:0.8},desc:'Золотая середина скорости, управляемости и заряда.'},
+  molot:{key:'molot',name:'МОЛОТ',role:'Ударный / тяжёлый',thrust:33,agility:0.78,turn:1.6,drain:0.0030,blast:19,color:0xff5468,
+    stats:{speed:0.62,agility:0.45,blast:1.0,endurance:1.0},desc:'Тяжёлый, но большой радиус подрыва и самый живучий заряд.'},
 };
 let selDrone='vector', D=DRONES[selDrone];
 
@@ -316,25 +317,26 @@ const MISSIONS=[
     lines:[['ШТАБ','Оператор, над Октябрьской замечено звено вражеских разведдронов.'],
            ['ШТАБ','Они наводят удары по гражданской инфраструктуре. Убери их.'],
            ['ВЫ','Принял. Поднимаю борт.']],
-    drones:3, vehicles:0, reserve:6, ew:0.10, collateralLimit:3 },
+    drones:3, vehicles:0, reserve:7, ew:0.10, collateralLimit:3, time:0.52 },
   { tag:'ОПЕРАЦИЯ 02', name:'ПЕРЕХВАТ КОНВОЯ',
     lines:[['ШТАБ','В потоке движется техника противника — «технички» со снаряжением.'],
            ['ШТАБ','Они прячутся среди гражданских машин. Работай чисто, без сопутствующих.'],
            ['ВЫ','Вижу трафик. Захожу.']],
-    drones:0, vehicles:3, reserve:6, ew:0.20, collateralLimit:1 },
+    drones:0, vehicles:3, reserve:7, ew:0.20, collateralLimit:1, time:0.80 },
   { tag:'ОПЕРАЦИЯ 03', name:'ГЛУШИЛКА',
     lines:[['ШТАБ','Противник развернул РЭБ. Сигнал будет рваться в застройке.'],
            ['ШТАБ','Смешанная группа: дроны прикрытия и техника. Держи линию видимости.'],
            ['ВЫ','Картинка сыпется… иду по памяти.']],
-    drones:2, vehicles:2, reserve:7, ew:0.7, collateralLimit:2 },
+    drones:2, vehicles:2, reserve:8, ew:0.7, collateralLimit:2, time:0.95 },
 ];
 let missionIdx=0, freeFlight=false;
 
 /* ---------- STATE ---------- */
 let gameState='menu'; // menu|hangar|brief|mission|result
 let renderer,scene,camera,clock,raycaster,groundStation;
-let buildings=[], cars=[], targets=[], explosions=[];
-let flightMode='angle';
+let buildings=[], cars=[], targets=[], explosions=[], streetLamps=[];
+let sunLight,hemiLight,ambLight,timeOfDay=0.5,timeFlow=1;
+let flightMode='angle', invertPitch=false;
 let mission={targetsLeft:0,score:0,kills:0,unitsUsed:0,unitsLeft:0,collateral:0,ew:0,collateralLimit:9};
 
 const drone={pos:new THREE.Vector3(0,8,55),vel:new THREE.Vector3(),quat:new THREE.Quaternion(),
@@ -343,16 +345,50 @@ const input={thr:0,yaw:0,pitch:0,roll:0};
 
 /* ---------- AUDIO (tiny WebAudio) ---------- */
 let AC=null;
-function audio(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}return AC;}
+function audio(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}
+  if(AC&&AC.state==='suspended')AC.resume().catch(()=>{});return AC;}
 function boom(){const c=audio();if(!c)return;const t=c.currentTime;
   const b=c.createBuffer(1,c.sampleRate*0.4,c.sampleRate);const d=b.getChannelData(0);
   for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2);
   const s=c.createBufferSource();s.buffer=b;const g=c.createGain();g.gain.setValueAtTime(.5,t);
   g.gain.exponentialRampToValueAtTime(.001,t+.4);const f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=900;
   s.connect(f);f.connect(g);g.connect(c.destination);s.start();}
-function blip(freq){const c=audio();if(!c)return;const t=c.currentTime;const o=c.createOscillator();
-  const g=c.createGain();o.frequency.value=freq;o.type='square';g.gain.setValueAtTime(.12,t);
+function blip(freq,vol){const c=audio();if(!c)return;const t=c.currentTime;const o=c.createOscillator();
+  const g=c.createGain();o.frequency.value=freq;o.type='square';g.gain.setValueAtTime(vol||.12,t);
   g.gain.exponentialRampToValueAtTime(.001,t+.12);o.connect(g);g.connect(c.destination);o.start();o.stop(t+.13);}
+function whoosh(){const c=audio();if(!c)return;const t=c.currentTime;
+  const b=c.createBuffer(1,c.sampleRate*0.5,c.sampleRate);const d=b.getChannelData(0);
+  for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1);
+  const s=c.createBufferSource();s.buffer=b;const g=c.createGain();g.gain.setValueAtTime(.001,t);
+  g.gain.linearRampToValueAtTime(.12,t+.15);g.gain.exponentialRampToValueAtTime(.001,t+.5);
+  const f=c.createBiquadFilter();f.type='bandpass';f.frequency.setValueAtTime(400,t);
+  f.frequency.exponentialRampToValueAtTime(2000,t+.5);s.connect(f);f.connect(g);g.connect(c.destination);s.start();}
+// continuous motor/rotor hum
+let motor=null;
+function startMotor(){const c=audio();if(!c||motor)return;
+  const o=c.createOscillator();o.type='sawtooth';o.frequency.value=70;const g=c.createGain();g.gain.value=0;
+  const o2=c.createOscillator();o2.type='square';o2.frequency.value=150;const g2=c.createGain();g2.gain.value=0;
+  const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1200;
+  o.connect(g);o2.connect(g2);g.connect(lp);g2.connect(lp);lp.connect(c.destination);o.start();o2.start();
+  motor={o,g,o2,g2};}
+function updateMotor(){if(!motor)return;const spd=drone.vel.length();
+  const on=(gameState==='mission'&&drone.alive);
+  const f=58+input.thr*95+spd*1.1;motor.o.frequency.value=f;motor.o2.frequency.value=f*2.02;
+  const v=on?(0.018+input.thr*0.05):0;
+  motor.g.gain.value+= (v-motor.g.gain.value)*0.2; motor.g2.gain.value+=((v*0.35)-motor.g2.gain.value)*0.2;}
+function stopMotor(){if(motor){try{motor.o.stop();motor.o2.stop();}catch(e){}motor=null;}}
+// lock + battery alarm cadence
+let lockAcc=0, battAcc=0;
+function updateAudioLoop(dt){
+  updateMotor();
+  if(gameState!=='mission'||!drone.alive)return;
+  // proximity lock beep — faster as nearest target closes
+  let nd=1e9;for(const t of targets){if(!t.alive)continue;const d=drone.pos.distanceTo(t.mesh.getWorldPosition(new THREE.Vector3()));if(d<nd)nd=d;}
+  if(nd<70){lockAcc-=dt;const iv=clamp(nd/70,0.12,1)*0.6;
+    if(lockAcc<=0){lockAcc=iv;blip(nd<18?1760:1180,0.05);}}
+  // low battery warning
+  if(drone.battery<0.2){battAcc-=dt;if(battAcc<=0){battAcc=0.5;blip(320,0.06);}}
+}
 
 /* ---------- TEXTURES ---------- */
 function makeBuildingTexture(baseHex,lit){
@@ -390,17 +426,18 @@ function initThree(){
   scene.fog=new THREE.Fog(0x0e1622,140,950);
   camera=new THREE.PerspectiveCamera(78,innerWidth/innerHeight,0.3,3000);
 
-  scene.add(new THREE.HemisphereLight(0xbcd4ff,0x232f3c,0.9));
-  const sun=new THREE.DirectionalLight(0xffe3c0,1.1);sun.position.set(-120,180,-60);scene.add(sun);
-  scene.add(new THREE.AmbientLight(0x30475e,0.45));
+  hemiLight=new THREE.HemisphereLight(0xbcd4ff,0x232f3c,0.9);scene.add(hemiLight);
+  sunLight=new THREE.DirectionalLight(0xffe3c0,1.1);sunLight.position.set(-120,180,-60);scene.add(sunLight);
+  ambLight=new THREE.AmbientLight(0x30475e,0.45);scene.add(ambLight);
 
   const gmat=new THREE.MeshStandardMaterial({map:makeGroundTexture(),color:0x8a99a8,roughness:.97,metalness:0});
   const ground=new THREE.Mesh(new THREE.PlaneGeometry(5000,5000),gmat);ground.rotation.x=-Math.PI/2;scene.add(ground);
-  const grid=new THREE.GridHelper(4000,120,0x37506a,0x1c2732);grid.position.y=0.02;scene.add(grid);
 
   bTex=[makeBuildingTexture(0x3a434d,.28),makeBuildingTexture(0x2f373f,.22),makeBuildingTexture(0x4a535c,.3),
         makeBuildingTexture(0x2a3138,.18),makeBuildingTexture(0x26445c,.45)];
+  buildRoads();
   buildCity();
+  buildStreetlights();
   buildTraffic();
 
   raycaster=new THREE.Raycaster();groundStation=new THREE.Vector3(0,2,70);
@@ -411,6 +448,76 @@ function initThree(){
 
 const SP=44, BLK=13, ROADSTEP=3;
 function isRoad(g){return Math.abs(g)%ROADSTEP===0;}
+
+function makeRoadTexture(){
+  const c=document.createElement('canvas');c.width=64;c.height=256;const x=c.getContext('2d');
+  x.fillStyle='#0d1116';x.fillRect(0,0,64,256);
+  for(let i=0;i<1200;i++){x.fillStyle='rgba(255,255,255,'+(Math.random()*0.03)+')';x.fillRect(Math.random()*64,Math.random()*256,1,1);}
+  // center dashed line
+  x.fillStyle='rgba(230,200,90,.7)';for(let y=0;y<256;y+=40)x.fillRect(30,y,4,22);
+  // edge lines
+  x.fillStyle='rgba(210,220,230,.35)';x.fillRect(4,0,2,256);x.fillRect(58,0,2,256);
+  const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;
+}
+function buildRoads(){
+  const rc=roadCoords();const len=(BLK*SP+SP)*2, W=28;
+  const texV=makeRoadTexture();texV.repeat.set(1,len/40);
+  const texH=makeRoadTexture();texH.repeat.set(1,len/40);
+  const matV=new THREE.MeshStandardMaterial({map:texV,color:0x9aa4ad,roughness:.85});
+  const matH=new THREE.MeshStandardMaterial({map:texH,color:0x9aa4ad,roughness:.85});
+  const geo=new THREE.PlaneGeometry(W,len);
+  for(const cx of rc){const m=new THREE.Mesh(geo,matV);m.rotation.x=-Math.PI/2;m.position.set(cx,0.05,0);scene.add(m);}
+  for(const cz of rc){const m=new THREE.Mesh(geo,matH);m.rotation.x=-Math.PI/2;m.rotation.z=Math.PI/2;m.position.set(0,0.06,cz);scene.add(m);}
+}
+function buildStreetlights(){
+  const rc=roadCoords();const poleGeo=new THREE.CylinderGeometry(0.25,0.35,10,6);
+  const armGeo=new THREE.BoxGeometry(3,0.3,0.3);const lampGeo=new THREE.BoxGeometry(1.4,0.5,0.7);
+  const poleMat=new THREE.MeshStandardMaterial({color:0x2a3138,roughness:.7,metalness:.4});
+  let count=0;
+  for(const cx of rc){
+    for(let z=-BLK*SP;z<=BLK*SP;z+=96){
+      if(count++>70)break;
+      placeLamp(cx+14,z,-Math.PI/2,poleGeo,armGeo,lampGeo,poleMat);
+    }
+  }
+  for(const cz of rc){
+    for(let xx=-BLK*SP;xx<=BLK*SP;xx+=96){
+      if(count++>140)break;
+      placeLamp(xx,cz+14,0,poleGeo,armGeo,lampGeo,poleMat);
+    }
+  }
+}
+function placeLamp(x,z,rot,poleGeo,armGeo,lampGeo,poleMat){
+  const g=new THREE.Group();
+  const pole=new THREE.Mesh(poleGeo,poleMat);pole.position.y=5;g.add(pole);
+  const arm=new THREE.Mesh(armGeo,poleMat);arm.position.set(1.4,9.8,0);g.add(arm);
+  const lampMat=new THREE.MeshStandardMaterial({color:0x1a1a10,emissive:0xffcf7a,emissiveIntensity:0});
+  const lamp=new THREE.Mesh(lampGeo,lampMat);lamp.position.set(2.7,9.7,0);g.add(lamp);
+  g.position.set(x,0,z);g.rotation.y=rot;scene.add(g);
+  streetLamps.push(lampMat);
+}
+
+/* ---------- DAY / NIGHT ---------- */
+const _cNight=new THREE.Color(0x05080e),_cDay=new THREE.Color(0x27384a),_cDusk=new THREE.Color(0x3a2230);
+const _sky=new THREE.Color();
+function updateDayNight(dt){
+  timeOfDay=(timeOfDay+dt*timeFlow/210)%1; // full cycle ~3.5 min when timeFlow=1
+  const elev=Math.sin((timeOfDay-0.25)*Math.PI*2);   // -1 midnight .. +1 noon
+  const dayF=clamp(elev,0,1), nightF=clamp(-elev,0,1), horiz=clamp(1-Math.abs(elev)/0.34,0,1);
+  _sky.copy(_cNight).lerp(_cDay,dayF).lerp(_cDusk,horiz*0.6);
+  if(scene.background)scene.background.copy(_sky);
+  if(scene.fog){scene.fog.color.copy(_sky);scene.fog.near=120+dayF*40;scene.fog.far=780+dayF*260;}
+  if(sunLight){
+    sunLight.intensity=clamp(elev*1.25,0,1.25)+0.04;
+    sunLight.color.setHSL(lerp(0.07,0.12,dayF), 0.6, lerp(0.55,0.72,dayF)); // warm low, whiter high
+    const ang=timeOfDay*Math.PI*2;
+    sunLight.position.set(Math.cos(ang)*320, Math.max(18,elev*300), Math.sin(ang)*320);
+  }
+  if(hemiLight)hemiLight.intensity=0.22+dayF*0.72;
+  if(ambLight)ambLight.intensity=0.24+dayF*0.30;
+  const lampOn=clamp(nightF*2.2+horiz*1.2,0,2.4);
+  for(const lm of streetLamps)lm.emissiveIntensity=lampOn;
+}
 function buildCity(){
   const glassTex=bTex[4];const geoCache={};
   for(let gx=-BLK;gx<=BLK;gx++)for(let gz=-BLK;gz<=BLK;gz++){
@@ -501,7 +608,7 @@ function addTarget(kind){
     const b=BLK*SP*0.6;mesh.position.set(rnd(-b,b),rnd(28,70),rnd(-b,b));
     scene.add(mesh);
     const t={mesh,kind,alive:true,hostile:true,marker:markerSprite(),
-      patrol:new THREE.Vector3(rnd(-b,b),rnd(30,65),rnd(-b,b)),spd:rnd(8,16)};
+      patrol:new THREE.Vector3(rnd(-b,b),rnd(34,64),rnd(-b,b)),spd:rnd(5,9)};
     mesh.add(t.marker);t.marker.position.y=3;targets.push(t);
   } else { // vehicle in traffic
     const car=makeCar(true);const rc=roadCoords();
@@ -510,7 +617,7 @@ function addTarget(kind){
     const px=along?rnd(-BLK*SP,BLK*SP):fixed,pz=along?fixed:rnd(-BLK*SP,BLK*SP);
     car.position.set(px,1.4,pz);car.rotation.y=along?(dir>0?Math.PI/2:-Math.PI/2):(dir>0?0:Math.PI);
     scene.add(car);
-    const t={mesh:car,kind,alive:true,hostile:true,marker:markerSprite(),along,fixed,dir,speed:rnd(16,24)};
+    const t={mesh:car,kind,alive:true,hostile:true,marker:markerSprite(),along,fixed,dir,speed:rnd(13,18)};
     car.add(t.marker);t.marker.position.y=4;targets.push(t);
   }
 }
@@ -519,9 +626,14 @@ function updateTargets(dt){
   for(const t of targets){if(!t.alive)continue;
     if(t.kind==='drone'){
       const to=t.patrol.clone().sub(t.mesh.position);
-      if(to.length()<6){const b=BLK*SP*0.6;t.patrol.set(rnd(-b,b),rnd(30,65),rnd(-b,b));}
+      if(to.length()<6){const b=BLK*SP*0.6;t.patrol.set(rnd(-b,b),rnd(34,64),rnd(-b,b));}
       else{to.normalize();t.mesh.position.addScaledVector(to,t.spd*dt);}
       t.mesh.rotation.y+=dt*0.6;
+      // anti-clip: never sink into a building — climb above its roof
+      const px=t.mesh.position.x,pz=t.mesh.position.z;
+      for(const bd of buildings){const a=bd.userData.aabb;
+        if(px>a.minx-2&&px<a.maxx+2&&pz>a.minz-2&&pz<a.maxz+2&&t.mesh.position.y<a.top+6){
+          t.mesh.position.y=a.top+6;if(t.patrol.y<a.top+8)t.patrol.y=a.top+12;break;}}
     } else {
       const mv=t.speed*t.dir*dt;const m=t.mesh;
       if(t.along){m.position.x+=mv;if(Math.abs(m.position.x)>lim)m.position.x=-Math.sign(m.position.x)*lim;}
@@ -568,24 +680,26 @@ function respawn(){
 }
 function updatePhysics(dt){
   if(!drone.alive){drone.respawnT-=dt;if(drone.respawnT<=0){if(mission.unitsLeft>0)respawn();}return;}
-  drone.battery=clamp(drone.battery-dt*(D.drain+input.thr*0.010),0,1);
+  drone.battery=clamp(drone.battery-dt*(D.drain+input.thr*0.005),0,1);
   if(drone.battery<=0){crash('РАЗРЯД',0.6);return;}
   const sag=0.55+0.45*drone.battery;
+  // pitch: push stick forward (up) = nose down / dive (standard FPV). invertPitch flips it.
+  const pv=input.pitch*(invertPitch?-1:1);
   if(flightMode==='angle'){
-    const maxAng=0.6;
-    drone.yaw-=input.yaw*(1.6*D.agility)*dt;
-    drone.pitch=lerp(drone.pitch,-input.pitch*maxAng,1-Math.pow(0.0004/D.agility,dt));
-    drone.roll=lerp(drone.roll,input.roll*maxAng,1-Math.pow(0.0004/D.agility,dt));
+    const maxAng=0.72, resp=1-Math.pow(0.00016/D.agility,dt);
+    drone.yaw-=input.yaw*(1.7*D.agility)*dt;
+    drone.pitch=lerp(drone.pitch,pv*maxAng,resp);
+    drone.roll=lerp(drone.roll,input.roll*maxAng,resp);
     tmpE.set(drone.pitch,drone.yaw,drone.roll,'YXZ');drone.quat.setFromEuler(tmpE);
   } else {
-    const t=new THREE.Vector3(-input.pitch*D.turn,-input.yaw*D.turn,input.roll*D.turn).multiplyScalar(1.15);
+    const t=new THREE.Vector3(pv*D.turn,-input.yaw*D.turn,input.roll*D.turn).multiplyScalar(1.2);
     drone.angVel.lerp(t,1-Math.pow(0.0009,dt));
     drone.quat.multiply(new THREE.Quaternion(drone.angVel.x*dt*0.5,drone.angVel.y*dt*0.5,drone.angVel.z*dt*0.5,1)).normalize();
   }
   const thrust=input.thr*D.thrust*sag;
   const localUp=up.clone().applyQuaternion(drone.quat);
   const accel=localUp.multiplyScalar(thrust);accel.y-=GRAV;
-  accel.addScaledVector(drone.vel,-0.9*drone.vel.length()*0.02-0.35);
+  accel.addScaledVector(drone.vel,-drone.vel.length()*0.013-0.22);
   drone.vel.addScaledVector(accel,dt);drone.pos.addScaledVector(drone.vel,dt);
 
   if(drone.pos.y<0.8){crash('УДАР О ЗЕМЛЮ',0.8);return;}
@@ -698,8 +812,9 @@ function frame(){
   requestAnimationFrame(frame);
   if(!renderer)return;
   let dt=Math.min(clock.getDelta(),0.05);
+  updateDayNight(dt);
   updateTraffic(dt);
-  if(gameState==='mission'){updateTargets(dt);updatePhysics(dt);updateHUD();
+  if(gameState==='mission'){updateTargets(dt);updatePhysics(dt);updateHUD();updateAudioLoop(dt);
     if(alertT>0){alertT-=dt;if(alertT<=0)showAlert('');}}
   updateExplosions(dt);
   updateCamera(dt);
@@ -746,7 +861,7 @@ function hideAllScreens(){['menu','hangar','brief','result'].forEach(s=>$(s).cla
 function setHUD(on){$('hud').style.display=on?'block':'none';$('gamebtns').style.display=on?'flex':'none';
   const t=on&&isTouch;$('stickL').style.display=t?'block':'none';$('stickR').style.display=t?'block':'none';$('btnFire').style.display=t?'block':'none';}
 
-function gotoMenu(){gameState='menu';setHUD(false);show('menu');checkOrientation();}
+function gotoMenu(){gameState='menu';setHUD(false);stopMotor();timeFlow=1;show('menu');checkOrientation();}
 function gotoHangar(){gameState='hangar';setHUD(false);renderCards();
   const m=freeFlight?{tag:'СВОБОДНЫЙ ПОЛЁТ',name:'Тренировочный полёт'}:MISSIONS[missionIdx];
   $('hMissionName').textContent=m.name;$('hMissionTag').textContent=m.tag||'Выбери дрон';show('hangar');}
@@ -796,16 +911,18 @@ function clearEntities(){
 }
 function startMission(){
   clearEntities();hideAllScreens();gameState='mission';
-  const m=freeFlight?{drones:2,vehicles:1,reserve:99,ew:0.1,collateralLimit:99}:MISSIONS[missionIdx];
+  const m=freeFlight?{drones:2,vehicles:1,reserve:99,ew:0.1,collateralLimit:99,time:0.35}:MISSIONS[missionIdx];
   mission={targetsLeft:m.drones+m.vehicles,score:0,kills:0,unitsUsed:0,unitsLeft:m.reserve,collateral:0,ew:m.ew,collateralLimit:m.collateralLimit};
+  timeOfDay=(m.time!=null?m.time:timeOfDay);timeFlow=freeFlight?1.6:0.35;
   for(let i=0;i<m.drones;i++)addTarget('drone');
   for(let i=0;i<m.vehicles;i++)addTarget('vehicle');
   updateObj();setHUD(true);respawn();checkOrientation();
   const el=document.documentElement;if(isTouch&&el.requestFullscreen)el.requestFullscreen().catch(()=>{});
-  audio();
+  audio();startMotor();whoosh();
 }
 function endMission(win,reason){
-  if(gameState!=='mission')return;gameState='result';setHUD(false);
+  if(gameState!=='mission')return;gameState='result';setHUD(false);stopMotor();
+  timeFlow=1;blip(win?880:200,0.1);
   const kills=mission.kills,score=mission.score,units=mission.unitsUsed;
   $('rIcon').textContent=win?'✓':'✕';$('rIcon').style.color=win?'var(--accent)':'var(--accent2)';
   $('rTitle').textContent=reason||(win?'Операция выполнена':'Провал');
@@ -834,7 +951,8 @@ $('deployBtn').addEventListener('click',gotoBrief);
 $('hangBack').addEventListener('click',gotoMenu);
 $('beginBtn').addEventListener('click',startMission);
 $('skipBtn').addEventListener('click',skipBrief);
-$('btnMode').addEventListener('click',()=>{flightMode=flightMode==='angle'?'acro':'angle';$('btnMode').textContent=flightMode==='acro'?'ACRO':'ANGLE';});
+$('btnMode').addEventListener('click',()=>{flightMode=flightMode==='angle'?'acro':'angle';$('btnMode').textContent=flightMode==='acro'?'ACRO':'ANGLE';blip(660);});
+$('btnInvert').addEventListener('click',()=>{invertPitch=!invertPitch;$('btnInvert').textContent='СТИК: '+(invertPitch?'ИНВ':'НОРМ');blip(660);});
 $('btnMenu').addEventListener('click',()=>{if(confirm('Выйти в меню? Прогресс операции сбросится.')){gotoMenu();}});
 $('retryBtn').addEventListener('click',()=>{gotoHangar();});
 $('toMenuBtn').addEventListener('click',gotoMenu);
