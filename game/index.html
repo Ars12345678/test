@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0e14">
+<title>STATIC — FPV Drone Simulator · Minsk</title>
+<style>
+  :root{
+    --bg:#0a0e14; --panel:rgba(14,20,28,.82); --line:rgba(120,190,255,.18);
+    --accent:#37e0c8; --accent2:#ff5468; --text:#e8eef5; --muted:#8aa0b5;
+    --hud:rgba(180,230,255,.92);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);
+    color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    -webkit-user-select:none;user-select:none;touch-action:none}
+  #app{position:fixed;inset:0}
+  canvas{display:block;position:absolute;inset:0}
+
+  /* ===== SIGNAL / FX OVERLAYS ===== */
+  #static{position:absolute;inset:0;pointer-events:none;opacity:0;mix-blend-mode:screen;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/></svg>");
+    background-size:180px;animation:snow .18s steps(3) infinite}
+  @keyframes snow{0%{background-position:0 0}100%{background-position:60px 90px}}
+  #vignette{position:absolute;inset:0;pointer-events:none;
+    box-shadow:inset 0 0 220px 40px rgba(0,0,0,.72);
+    background:radial-gradient(120% 120% at 50% 50%,transparent 55%,rgba(0,0,0,.35))}
+  #scanlines{position:absolute;inset:0;pointer-events:none;opacity:.25;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.35) 0 1px,transparent 1px 3px)}
+
+  /* ===== HUD ===== */
+  #hud{position:absolute;inset:0;pointer-events:none;display:none;
+    font-variant-numeric:tabular-nums;letter-spacing:.04em}
+  .hud-corner{position:absolute;padding:14px 16px;font-size:12px;color:var(--hud);
+    text-shadow:0 0 8px rgba(0,0,0,.9)}
+  #hud-tl{top:env(safe-area-inset-top,0);left:0}
+  #hud-tr{top:env(safe-area-inset-top,0);right:0;text-align:right}
+  .stat{display:flex;gap:8px;align-items:baseline;margin:2px 0}
+  .stat b{font-size:20px;font-weight:700;color:#fff;min-width:52px;display:inline-block}
+  .stat .u{font-size:11px;color:var(--muted)}
+  .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.18em;color:var(--muted)}
+  #sig-wrap{display:flex;align-items:center;gap:6px;justify-content:flex-end}
+  .bars{display:flex;gap:2px;align-items:flex-end;height:16px}
+  .bars i{width:4px;background:var(--accent);border-radius:1px;opacity:.25;
+    transition:opacity .15s}
+  .bars i:nth-child(1){height:5px}.bars i:nth-child(2){height:8px}
+  .bars i:nth-child(3){height:11px}.bars i:nth-child(4){height:14px}.bars i:nth-child(5){height:16px}
+  #batt{height:8px;width:64px;border:1px solid var(--line);border-radius:3px;
+    overflow:hidden;margin-top:3px}
+  #batt > i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#37e0c8,#8effc0);
+    transition:width .3s,background .3s}
+  /* crosshair */
+  #cross{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    width:34px;height:34px;pointer-events:none;opacity:.85}
+  #cross:before,#cross:after{content:"";position:absolute;background:var(--accent);opacity:.8}
+  #cross:before{left:50%;top:0;width:2px;height:10px;transform:translateX(-50%)}
+  #cross:after{top:50%;left:0;height:2px;width:10px;transform:translateY(-50%)}
+  #cross span{position:absolute;inset:0;border:1px solid var(--accent);border-radius:50%;
+    opacity:.35}
+  /* horizon tape */
+  #alertmsg{position:absolute;top:16%;left:50%;transform:translateX(-50%);
+    padding:6px 14px;border:1px solid var(--accent2);border-radius:20px;
+    color:#fff;background:rgba(255,84,104,.12);font-size:12px;letter-spacing:.15em;
+    text-transform:uppercase;opacity:0;transition:opacity .3s}
+
+  /* ===== TOUCH CONTROLS ===== */
+  .stick{position:absolute;bottom:calc(env(safe-area-inset-bottom,0) + 22px);
+    width:150px;height:150px;border-radius:50%;pointer-events:auto;display:none;
+    background:radial-gradient(circle at 50% 50%,rgba(120,190,255,.05),rgba(10,14,20,.35));
+    border:1px solid var(--line);backdrop-filter:blur(2px)}
+  #stickL{left:calc(env(safe-area-inset-left,0) + 20px)}
+  #stickR{right:calc(env(safe-area-inset-right,0) + 20px)}
+  .knob{position:absolute;top:50%;left:50%;width:62px;height:62px;border-radius:50%;
+    transform:translate(-50%,-50%);
+    background:radial-gradient(circle at 40% 35%,#5be6d4,#178a7c);
+    box-shadow:0 4px 18px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.15) inset}
+  .stick-lbl{position:absolute;top:-18px;left:50%;transform:translateX(-50%);
+    font-size:9px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;white-space:nowrap}
+  .stick .ax{position:absolute;inset:12px;border-radius:50%;
+    border:1px dashed rgba(120,190,255,.12)}
+  .stick .cx,.stick .cy{position:absolute;background:rgba(120,190,255,.10)}
+  .stick .cx{left:14px;right:14px;top:50%;height:1px}
+  .stick .cy{top:14px;bottom:14px;left:50%;width:1px}
+
+  /* top-right in-game buttons */
+  #gamebtns{position:absolute;top:calc(env(safe-area-inset-top,0) + 8px);
+    left:50%;transform:translateX(-50%);display:none;gap:8px;pointer-events:auto;z-index:6}
+  .gbtn{pointer-events:auto;background:var(--panel);border:1px solid var(--line);
+    color:var(--text);border-radius:10px;padding:8px 12px;font-size:12px;letter-spacing:.05em;
+    backdrop-filter:blur(6px)}
+  .gbtn:active{background:rgba(55,224,200,.16)}
+
+  /* ===== MENU ===== */
+  #menu{position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center;padding:24px;
+    background:
+      radial-gradient(80% 60% at 50% 0%,rgba(55,224,200,.10),transparent 60%),
+      radial-gradient(90% 70% at 50% 110%,rgba(255,84,104,.10),transparent 55%),
+      linear-gradient(180deg,#070a10,#0a0e14 60%,#05070b);
+    overflow:hidden}
+  #menu:before{content:"";position:absolute;inset:0;opacity:.5;
+    background-image:linear-gradient(rgba(120,190,255,.05) 1px,transparent 1px),
+                     linear-gradient(90deg,rgba(120,190,255,.05) 1px,transparent 1px);
+    background-size:44px 44px;mask-image:radial-gradient(70% 70% at 50% 45%,#000,transparent 80%)}
+  .brand{position:relative;z-index:2}
+  .kicker{font-size:11px;letter-spacing:.5em;color:var(--accent);text-transform:uppercase;
+    margin-bottom:14px;opacity:.9}
+  .title{font-size:clamp(56px,17vw,140px);font-weight:800;line-height:.9;
+    letter-spacing:-.03em;position:relative;
+    background:linear-gradient(180deg,#ffffff,#9fd8ff);-webkit-background-clip:text;
+    background-clip:text;color:transparent;
+    text-shadow:0 0 60px rgba(120,190,255,.25)}
+  .title span{position:absolute;left:0;top:0;width:100%;color:var(--accent2);
+    opacity:.55;filter:blur(.5px);clip-path:inset(0 0 55% 0);
+    animation:glitch 3.6s infinite steps(2)}
+  @keyframes glitch{0%,92%,100%{transform:translate(0,0)}93%{transform:translate(-3px,1px)}
+    95%{transform:translate(2px,-1px)}97%{transform:translate(-1px,0)}}
+  .subtitle{margin-top:10px;font-size:clamp(12px,3.4vw,16px);color:var(--muted);
+    letter-spacing:.28em;text-transform:uppercase}
+  .menu-actions{position:relative;z-index:2;margin-top:42px;display:flex;
+    flex-direction:column;gap:12px;width:min(340px,86vw)}
+  .btn{appearance:none;border:none;cursor:pointer;font-size:15px;font-weight:600;
+    letter-spacing:.08em;padding:16px 20px;border-radius:14px;color:#04120f;
+    background:linear-gradient(180deg,#54ecd6,#25b7a3);text-transform:uppercase;
+    box-shadow:0 10px 30px rgba(55,224,200,.28),0 0 0 1px rgba(255,255,255,.1) inset;
+    transition:transform .08s}
+  .btn:active{transform:translateY(2px)}
+  .btn.ghost{background:var(--panel);color:var(--text);border:1px solid var(--line);
+    box-shadow:none;font-weight:500}
+  .modes{display:flex;gap:8px;justify-content:center;margin-top:4px}
+  .chip{flex:1;padding:12px 8px;border-radius:12px;border:1px solid var(--line);
+    background:var(--panel);color:var(--muted);font-size:12px;letter-spacing:.06em;cursor:pointer}
+  .chip.active{border-color:var(--accent);color:#fff;background:rgba(55,224,200,.12)}
+  .chip small{display:block;margin-top:3px;font-size:9px;opacity:.7;text-transform:uppercase;letter-spacing:.12em}
+  .hint{position:relative;z-index:2;margin-top:26px;font-size:11px;color:var(--muted);
+    max-width:min(420px,88vw);line-height:1.7}
+  .foot{position:absolute;bottom:14px;left:0;right:0;text-align:center;font-size:10px;
+    color:rgba(138,160,181,.5);letter-spacing:.2em;z-index:2}
+  .hidden{display:none!important}
+  /* rotate hint */
+  #rotate{position:absolute;inset:0;z-index:40;background:#05070b;display:none;
+    flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;color:var(--muted)}
+  #rotate .ph{width:70px;height:120px;border:2px solid var(--accent);border-radius:12px;
+    animation:rot 1.8s ease-in-out infinite}
+  @keyframes rot{0%,100%{transform:rotate(0)}50%{transform:rotate(90deg)}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="hud">
+    <div id="scanlines"></div>
+    <div id="cross"><span></span></div>
+    <div id="alertmsg"></div>
+    <div class="hud-corner" id="hud-tl">
+      <div class="lbl">Speed</div>
+      <div class="stat"><b id="spd">0</b><span class="u">km/h</span></div>
+      <div class="lbl" style="margin-top:8px">Altitude</div>
+      <div class="stat"><b id="alt">0</b><span class="u">m</span></div>
+    </div>
+    <div class="hud-corner" id="hud-tr">
+      <div class="lbl">Signal</div>
+      <div id="sig-wrap"><span id="sigtxt" style="font-size:11px;color:var(--muted)">HD</span>
+        <div class="bars" id="bars"><i></i><i></i><i></i><i></i><i></i></div></div>
+      <div class="lbl" style="margin-top:10px">Battery</div>
+      <div id="batt"><i id="battfill"></i></div>
+      <div class="lbl" style="margin-top:10px">Throttle</div>
+      <div class="stat" style="justify-content:flex-end"><b id="thr">0</b><span class="u">%</span></div>
+    </div>
+  </div>
+
+  <div id="gamebtns">
+    <button class="gbtn" id="btnMode">MODE: ANGLE</button>
+    <button class="gbtn" id="btnReset">RESPAWN</button>
+    <button class="gbtn" id="btnMenu">MENU</button>
+  </div>
+
+  <!-- Left stick: throttle (Y) + yaw (X) -->
+  <div class="stick" id="stickL">
+    <div class="stick-lbl">Throttle / Yaw</div>
+    <div class="ax"></div><div class="cx"></div><div class="cy"></div>
+    <div class="knob" id="knobL"></div>
+  </div>
+  <!-- Right stick: pitch (Y) + roll (X) -->
+  <div class="stick" id="stickR">
+    <div class="stick-lbl">Pitch / Roll</div>
+    <div class="ax"></div><div class="cx"></div><div class="cy"></div>
+    <div class="knob" id="knobR"></div>
+  </div>
+
+  <div id="static"></div>
+  <div id="vignette"></div>
+
+  <!-- MENU -->
+  <div id="menu">
+    <div class="brand">
+      <div class="kicker">FPV Drone Simulator</div>
+      <div class="title">STATIC<span aria-hidden="true">STATIC</span></div>
+      <div class="subtitle">Minsk · Oktyabrskaya</div>
+    </div>
+    <div class="menu-actions">
+      <div class="modes">
+        <div class="chip active" data-mode="angle">ASSIST<small>Self-level</small></div>
+        <div class="chip" data-mode="acro">ACRO<small>Rates</small></div>
+      </div>
+      <button class="btn" id="playBtn">Взлёт / Launch</button>
+      <button class="btn ghost" id="howBtn">Управление / Controls</button>
+    </div>
+    <div class="hint" id="howHint">
+      <b style="color:var(--text)">Телефон:</b> левый стик — газ (вверх/вниз) и поворот (влево/вправо),
+      правый стик — тангаж и крен. Наклоняйся за здания — сигнал слабеет, картинка сыпется.<br>
+      <b style="color:var(--text)">Клавиатура:</b> W/S — газ, A/D — рыскание, ← ↑ ↓ → — крен/тангаж, R — респаун.
+    </div>
+    <div class="foot">PROTOTYPE BUILD · v0.1 · WebGL</div>
+  </div>
+
+  <div id="rotate"><div class="ph"></div><div>Поверни телефон горизонтально<br>Rotate device to landscape</div></div>
+</div>
+
+<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+<script>
+(function(){
+"use strict";
+const THREE_OK = typeof THREE !== "undefined";
+const $ = id => document.getElementById(id);
+const clamp = (v,a,b)=>v<a?a:v>b?b:v;
+const lerp = (a,b,t)=>a+(b-a)*t;
+const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints>0;
+
+// ---------- INPUT STATE ----------
+// axes normalized -1..1 ; throttle 0..1
+const input = { thr:0, yaw:0, pitch:0, roll:0 };
+let flightMode = 'angle'; // 'angle' | 'acro'
+
+// ---------- THREE SCENE ----------
+let renderer, scene, camera, clock;
+let buildings = [];           // meshes for raycast + collision (AABB stored)
+let raycaster, groundStation;
+let running=false;
+
+// drone dynamics
+const drone = {
+  pos:new THREE.Vector3(0,6,40),
+  vel:new THREE.Vector3(),
+  quat:new THREE.Quaternion(),
+  angVel:new THREE.Vector3(),   // body rates (acro)
+  yaw:0, pitch:0, roll:0,       // angle-mode attitude
+  battery:1.0, signal:1.0, alive:true, respawnT:0
+};
+
+function initThree(){
+  const app=$('app');
+  renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(innerWidth,innerHeight);
+  renderer.domElement.style.zIndex=0;
+  app.insertBefore(renderer.domElement, app.firstChild);
+
+  scene=new THREE.Scene();
+  scene.background=new THREE.Color(0x0e1622);
+  scene.fog=new THREE.Fog(0x0e1622, 120, 900);
+
+  camera=new THREE.PerspectiveCamera(78, innerWidth/innerHeight, 0.3, 3000);
+
+  // lights — cold soviet-morning palette
+  const hemi=new THREE.HemisphereLight(0xbcd4ff,0x24303c,0.85); scene.add(hemi);
+  const sun=new THREE.DirectionalLight(0xffe3c0,1.15);
+  sun.position.set(-120,180,-60); scene.add(sun);
+  scene.add(new THREE.AmbientLight(0x30475e,0.5));
+
+  // ground
+  const groundMat=new THREE.MeshStandardMaterial({color:0x141b22,roughness:.96,metalness:0});
+  const ground=new THREE.Mesh(new THREE.PlaneGeometry(4000,4000),groundMat);
+  ground.rotation.x=-Math.PI/2; scene.add(ground);
+  // road grid
+  const grid=new THREE.GridHelper(4000,200,0x2a3a4a,0x1a232c);
+  grid.position.y=0.02; scene.add(grid);
+
+  buildCity();
+
+  raycaster=new THREE.Raycaster();
+  groundStation=new THREE.Vector3(0,2,60); // "pilot / ground station" position
+
+  clock=new THREE.Clock();
+  addEventListener('resize',onResize);
+  respawn();
+}
+
+function rnd(a,b){return a+Math.random()*(b-a);}
+
+function buildCity(){
+  // palette: soviet concrete greys + a few modern glass towers + industrial rust
+  const palette=[0x3a434d,0x2f373f,0x454e57,0x515a63,0x2a3138,0x606a72];
+  const glass=0x2b4b63, rust=0x5a3a2c;
+  const geoCache={};
+  const grid=[]; const spacing=44; const blocks=13;
+  for(let gx=-blocks;gx<=blocks;gx++){
+    for(let gz=-blocks;gz<=blocks;gz++){
+      // leave a road grid: skip every 3rd lane -> streets
+      if(Math.abs(gx)%3===0 || Math.abs(gz)%3===0) continue;
+      if(Math.random()<0.18) continue; // empty lots
+      const bx=gx*spacing + rnd(-6,6);
+      const bz=gz*spacing + rnd(-6,6);
+      const dist=Math.hypot(bx,bz);
+      let h, w=rnd(16,30), d=rnd(16,30), color, rough=0.92, metal=0.0;
+      const modern = dist>180 && Math.random()<0.28;
+      if(modern){ h=rnd(70,150); color=glass; rough=0.25; metal=0.55; w=rnd(20,30); d=w; }
+      else if(Math.random()<0.14){ h=rnd(8,16); color=rust; rough=0.98; } // industrial low
+      else { h=rnd(20,60); color=palette[(Math.random()*palette.length)|0]; }
+      const key=(w.toFixed(0))+'_'+(h.toFixed(0))+'_'+(d.toFixed(0));
+      if(!geoCache[key]) geoCache[key]=new THREE.BoxGeometry(w,h,d);
+      const mat=new THREE.MeshStandardMaterial({color,roughness:rough,metalness:metal});
+      const m=new THREE.Mesh(geoCache[key],mat);
+      m.position.set(bx,h/2,bz);
+      scene.add(m);
+      // store AABB for collision + raycast
+      m.userData.aabb={minx:bx-w/2,maxx:bx+w/2,minz:bz-d/2,maxz:bz+d/2,top:h};
+      buildings.push(m);
+    }
+  }
+  // a couple of tall landmark towers near center
+  for(let i=0;i<3;i++){
+    const h=rnd(150,230), w=22;
+    const g=new THREE.BoxGeometry(w,h,w);
+    const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:0x24425a,roughness:.2,metalness:.6}));
+    const ang=i/3*Math.PI*2, r=110;
+    m.position.set(Math.cos(ang)*r,h/2,Math.sin(ang)*r);
+    scene.add(m);
+    m.userData.aabb={minx:m.position.x-w/2,maxx:m.position.x+w/2,minz:m.position.z-w/2,maxz:m.position.z+w/2,top:h};
+    buildings.push(m);
+  }
+}
+
+function onResize(){
+  if(!renderer)return;
+  renderer.setSize(innerWidth,innerHeight);
+  camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
+  checkOrientation();
+}
+
+// ---------- PHYSICS ----------
+const GRAV=14.0, MAXTHRUST=26.0, HOVER=0.5;
+const tmpQ=new THREE.Quaternion(), tmpE=new THREE.Euler(), up=new THREE.Vector3(0,1,0);
+
+function respawn(){
+  drone.pos.set(rnd(-10,10),8,55); drone.vel.set(0,0,0);
+  drone.yaw=Math.PI; drone.pitch=0; drone.roll=0;
+  drone.quat.identity(); drone.angVel.set(0,0,0);
+  drone.battery=1.0; drone.alive=true; drone.respawnT=0;
+  showAlert('');
+}
+
+function updatePhysics(dt){
+  if(!drone.alive){
+    drone.respawnT-=dt;
+    if(drone.respawnT<=0) respawn();
+    return;
+  }
+  // battery drain (throttle-weighted) + voltage sag on thrust
+  drone.battery=clamp(drone.battery - dt*(0.006+input.thr*0.012),0,1);
+  const sag = 0.55 + 0.45*drone.battery; // <1 when low -> weaker punch
+
+  if(flightMode==='angle'){
+    // sticks command bank/pitch angles; yaw is a rate
+    const maxAng=0.62; // ~35°
+    const tPitch = -input.pitch*maxAng;
+    const tRoll  =  input.roll*maxAng;
+    drone.yaw   -= input.yaw*1.8*dt;
+    drone.pitch  = lerp(drone.pitch, tPitch, 1-Math.pow(0.0006,dt));
+    drone.roll   = lerp(drone.roll , tRoll , 1-Math.pow(0.0006,dt));
+    tmpE.set(drone.pitch, drone.yaw, drone.roll,'YXZ');
+    drone.quat.setFromEuler(tmpE);
+  } else {
+    // ACRO: sticks command body rates, integrate orientation (with inertia feel)
+    const rateP=3.2, rateR=3.4, rateY=3.0;
+    const target=new THREE.Vector3(-input.pitch*rateP, -input.yaw*rateY, input.roll*rateR);
+    drone.angVel.lerp(target, 1-Math.pow(0.0009,dt)); // gyro/PID smoothing
+    // integrate body rates into orientation (body space)
+    drone.quat.multiply(new THREE.Quaternion(
+      drone.angVel.x*dt*0.5, drone.angVel.y*dt*0.5, drone.angVel.z*dt*0.5, 1)).normalize();
+  }
+
+  // thrust along drone local up
+  const thrust = input.thr*MAXTHRUST*sag;
+  const localUp=up.clone().applyQuaternion(drone.quat);
+  const accel=localUp.multiplyScalar(thrust);
+  accel.y-=GRAV;
+  // aerodynamic drag (quadratic-ish)
+  const dragC=0.9;
+  accel.addScaledVector(drone.vel, -dragC*drone.vel.length()*0.02 - 0.35);
+  drone.vel.addScaledVector(accel, dt);
+  drone.pos.addScaledVector(drone.vel, dt);
+
+  // ground + collision
+  if(drone.pos.y<0.6){ crash('GROUND IMPACT'); return; }
+  for(const b of buildings){
+    const a=b.userData.aabb;
+    if(drone.pos.x>a.minx&&drone.pos.x<a.maxx&&drone.pos.z>a.minz&&drone.pos.z<a.maxz&&drone.pos.y<a.top){
+      crash('COLLISION'); return;
+    }
+  }
+  updateSignal();
+}
+
+function crash(reason){
+  drone.alive=false; drone.respawnT=1.6;
+  drone.vel.multiplyScalar(0.1);
+  showAlert('✕ '+reason+' — RESPAWN');
+}
+
+function updateSignal(){
+  // line of sight from drone to ground station; buildings degrade the link
+  const dir=groundStation.clone().sub(drone.pos);
+  const dist=dir.length(); dir.normalize();
+  raycaster.set(drone.pos, dir);
+  raycaster.far=dist;
+  const hits=raycaster.intersectObjects(buildings,false);
+  let occl = hits.length>0 ? clamp(hits.length*0.55,0,1) : 0;
+  // distance falloff
+  const distFall=clamp((dist-350)/650,0,0.6);
+  let q = 1 - occl - distFall;
+  drone.signal = clamp(lerp(drone.signal, q, 0.25), 0, 1);
+}
+
+// ---------- CAMERA & RENDER ----------
+const camOffset=new THREE.Vector3(0,0,0);
+function updateCamera(){
+  camera.position.copy(drone.pos);
+  camera.quaternion.copy(drone.quat);
+  // FPV camera uptilt (~15°) + look forward (-Z local is forward)
+  const tilt=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0), THREE.MathUtils.degToRad(-12));
+  camera.quaternion.multiply(tilt);
+  // speed FOV + subtle shake
+  const spd=drone.vel.length();
+  camera.fov=lerp(camera.fov, 78+clamp(spd*0.35,0,26), 0.1);
+  if(running && drone.alive){
+    const s=clamp(spd*0.0009+input.thr*0.0016,0,0.012);
+    camera.position.x+=(Math.random()-.5)*s*10;
+    camera.position.y+=(Math.random()-.5)*s*10;
+  }
+  camera.updateProjectionMatrix();
+}
+
+// ---------- HUD ----------
+const bars=$('bars').children;
+function updateHUD(){
+  const spd=Math.round(drone.vel.length()*3.6);
+  $('spd').textContent=spd;
+  $('alt').textContent=Math.max(0,Math.round(drone.pos.y-0.5));
+  $('thr').textContent=Math.round(input.thr*100);
+  $('battfill').style.width=(drone.battery*100)+'%';
+  $('battfill').style.background = drone.battery<0.2
+    ? 'linear-gradient(90deg,#ff5468,#ff9a68)' : 'linear-gradient(90deg,#37e0c8,#8effc0)';
+  // signal bars
+  const lvl=Math.round(drone.signal*5);
+  for(let i=0;i<5;i++) bars[i].style.opacity = i<lvl?'1':'0.22';
+  $('sigtxt').textContent = drone.signal>0.15?'HD':'LOS';
+  // static overlay
+  const noise=clamp((1-drone.signal-0.15)*1.4,0,0.9);
+  $('static').style.opacity=noise.toFixed(2);
+  $('scanlines').style.opacity=(0.12+noise*0.4).toFixed(2);
+}
+let alertT=0;
+function showAlert(t){
+  const el=$('alertmsg');
+  if(!t){el.style.opacity=0;return;}
+  el.textContent=t; el.style.opacity=1; alertT=2.2;
+}
+
+// ---------- MAIN LOOP ----------
+function frame(){
+  requestAnimationFrame(frame);
+  if(!running){ if(renderer&&scene&&camera) renderer.render(scene,camera); return; }
+  let dt=Math.min(clock.getDelta(),0.05);
+  updatePhysics(dt);
+  updateCamera();
+  updateHUD();
+  if(alertT>0){alertT-=dt; if(alertT<=0)showAlert('');}
+  renderer.render(scene,camera);
+}
+
+// ---------- TOUCH JOYSTICKS ----------
+function bindStick(el,knob,onMove,onEnd){
+  let id=null, cx=0, cy=0, R=58;
+  function start(e){
+    const t=e.changedTouches?e.changedTouches[0]:e;
+    const r=el.getBoundingClientRect(); cx=r.left+r.width/2; cy=r.top+r.height/2;
+    id=e.changedTouches?t.identifier:'mouse';
+    move(e); e.preventDefault();
+  }
+  function move(e){
+    let t;
+    if(e.changedTouches){
+      for(const ct of e.changedTouches) if(ct.identifier===id){t=ct;break;}
+      if(!t) return;
+    } else t=e;
+    let dx=t.clientX-cx, dy=t.clientY-cy;
+    const d=Math.hypot(dx,dy);
+    if(d>R){dx*=R/d;dy*=R/d;}
+    knob.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;
+    onMove(clamp(dx/R,-1,1), clamp(dy/R,-1,1));
+    e.preventDefault();
+  }
+  function end(e){
+    if(e.changedTouches){let f=false;for(const ct of e.changedTouches)if(ct.identifier===id)f=true;if(!f)return;}
+    id=null; knob.style.transform='translate(-50%,-50%)'; onEnd(); e.preventDefault();
+  }
+  el.addEventListener('touchstart',start,{passive:false});
+  el.addEventListener('touchmove',move,{passive:false});
+  el.addEventListener('touchend',end,{passive:false});
+  el.addEventListener('touchcancel',end,{passive:false});
+  // mouse (desktop testing)
+  el.addEventListener('mousedown',start);
+  window.addEventListener('mousemove',e=>{if(id==='mouse')move(e);});
+  window.addEventListener('mouseup',e=>{if(id==='mouse')end(e);});
+}
+// left: x->yaw, y->throttle (up = +throttle). Throttle is self-holding.
+bindStick($('stickL'),$('knobL'),(x,y)=>{ input.yaw=x; input.thr=clamp((-y+1)/2,0,1); }, ()=>{ input.yaw=0; /* throttle holds via re-touch; drop to hover-ish */ });
+// right: x->roll, y->pitch. Self-centers.
+bindStick($('stickR'),$('knobR'),(x,y)=>{ input.roll=x; input.pitch=y; }, ()=>{ input.roll=0; input.pitch=0; });
+
+// ---------- KEYBOARD ----------
+const keys={};
+addEventListener('keydown',e=>{keys[e.code]=true; if(e.code==='KeyR')respawn();});
+addEventListener('keyup',e=>{keys[e.code]=false;});
+function pollKeys(){
+  if(isTouch) return;
+  input.thr=clamp(input.thr+((keys.KeyW?1:0)-(keys.KeyS?1:0))*0.02,0,1);
+  input.yaw=(keys.KeyD?1:0)-(keys.KeyA?1:0);
+  input.pitch=(keys.ArrowDown?1:0)-(keys.ArrowUp?1:0);
+  input.roll=(keys.ArrowRight?1:0)-(keys.ArrowLeft?1:0);
+}
+setInterval(pollKeys,16);
+
+// ---------- ORIENTATION ----------
+function checkOrientation(){
+  const landscape=innerWidth>=innerHeight;
+  $('rotate').style.display=(isTouch && !landscape && running)?'flex':'none';
+}
+addEventListener('orientationchange',()=>setTimeout(checkOrientation,300));
+
+// ---------- UI / MENU ----------
+function startGame(){
+  if(!THREE_OK){ alert('WebGL/Three.js не загрузился (нет сети?).'); return; }
+  running=true;
+  $('menu').classList.add('hidden');
+  $('hud').style.display='block';
+  $('gamebtns').style.display='flex';
+  if(isTouch){$('stickL').style.display='block';$('stickR').style.display='block';}
+  input.thr=HOVER; // start near hover so it's flyable
+  respawn();
+  checkOrientation();
+  const el=document.documentElement;
+  if(isTouch && el.requestFullscreen){ el.requestFullscreen().catch(()=>{}); }
+}
+function openMenu(){ running=false; $('menu').classList.remove('hidden');
+  $('hud').style.display='none'; $('gamebtns').style.display='none';
+  $('stickL').style.display='none'; $('stickR').style.display='none';
+  $('rotate').style.display='none'; }
+
+$('playBtn').addEventListener('click',startGame);
+$('howBtn').addEventListener('click',()=>{ $('howHint').scrollIntoView({behavior:'smooth'});
+  $('howHint').animate([{opacity:.4},{opacity:1}],{duration:500});});
+document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{
+  document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));
+  c.classList.add('active'); flightMode=c.dataset.mode;
+  $('btnMode').textContent='MODE: '+(flightMode==='acro'?'ACRO':'ANGLE');
+}));
+$('btnMode').addEventListener('click',()=>{
+  flightMode=flightMode==='angle'?'acro':'angle';
+  $('btnMode').textContent='MODE: '+(flightMode==='acro'?'ACRO':'ANGLE');
+});
+$('btnReset').addEventListener('click',respawn);
+$('btnMenu').addEventListener('click',openMenu);
+
+// ---------- BOOT ----------
+if(THREE_OK){ initThree(); frame(); }
+else { $('menu').querySelector('.hint').innerHTML='<b style="color:#ff5468">Ошибка загрузки 3D-движка.</b> Проверь интернет и обнови страницу.'; }
+})();
+</script>
+</body>
+</html>
